@@ -182,8 +182,9 @@ class CCXTStore(with_metaclass(MetaSingleton, object)):
 
     @retry
     def fetch_ohlcv(self, symbol, timeframe, since, limit, params={}):
-        if self.debug:
-            print('Fetching: {}, TF: {}, Since: {}, Limit: {}'.format(symbol, timeframe, since, limit))
+        if self.debug and since is not None:
+            print('Fetching: {}, TF: {}, Since: {}, Limit: {}'.format(symbol, timeframe,
+                                                                      datetime.fromtimestamp((since / 1e3)), limit))
         return self.exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since, limit=limit, params=params)
 
     @retry
