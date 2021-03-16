@@ -67,7 +67,7 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
 
     params = (
         ('historical', False),  # only historical download
-        ('backfill_start', False),  # do backfilling at the start
+        ('backfill_start', True),  # do backfilling at the start
         ('fetch_ohlcv_params', {}),
         ('ohlcv_limit', 20),
         ('drop_newest', False),
@@ -86,9 +86,13 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
         self._data = deque()  # data queue for price data
         self._last_id = ''  # last processed trade id for ohlcv
         self._last_ts = 0  # last processed timestamp for ohlcv
+        self._start_time = None
 
     def start(self, ):
+
         DataBase.start(self)
+
+        self._start_time = datetime.now()
 
         if self.p.fromdate:
             self._state = self._ST_HISTORBACK
@@ -125,7 +129,13 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                         self.put_notification(self.DISCONNECTED)
                         self._state = self._ST_OVER
                         return False  # end of historical
+                    elif datetime.fromtimestamp(self._last_ts / 1000) < self._start_time:
+                        # _last_ts is less than _start_time, so it's still historical data
+                        self._fetch_ohlcv()
+                        ret = self._load_ohlcv()
+                        return ret
                     else:
+                        print(f"data's already live {self._last_ts}")
                         self._state = self._ST_LIVE
                         self.put_notification(self.LIVE)
                         continue

@@ -64,11 +64,11 @@ store = CCXTStore(exchange='binance', currency='BNB', config=config, retries=5, 
 
 # Get our data
 # Drop newest will prevent us from loading partial data from incomplete candles
-hist_start_date = datetime.utcnow() - timedelta(minutes=10)
+hist_start_date = datetime.utcnow() - timedelta(days=20)
 to_date = datetime.utcnow() + timedelta(minutes=3)
 data = store.getdata(dataname='BNB/USDT', name="BNBUSDT",
                      timeframe=bt.TimeFrame.Minutes, fromdate=hist_start_date, todate=to_date,
-                     compression=1, ohlcv_limit=50, debug=False)  # , historical=True)
+                     compression=5, ohlcv_limit=1000, debug=False)  # , historical=True)
 
 #
 broker = cerebro.getbroker()
