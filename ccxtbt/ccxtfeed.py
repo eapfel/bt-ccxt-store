@@ -124,21 +124,22 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                 if ret:
                     return ret
                 else:
-                    # End of historical data
-                    if self.p.historical:  # only historical
-                        self.put_notification(self.DISCONNECTED)
-                        self._state = self._ST_OVER
-                        return False  # end of historical
-                    elif datetime.fromtimestamp(self._last_ts / 1000) < self._start_time:
-                        # _last_ts is less than _start_time, so it's still historical data
+                    if datetime.fromtimestamp(self._last_ts / 1000) < self._start_time:
                         self._fetch_ohlcv()
                         ret = self._load_ohlcv()
-                        return ret
-                    else:
-                        print(f"data's already live {self._last_ts}")
-                        self._state = self._ST_LIVE
-                        self.put_notification(self.LIVE)
-                        continue
+                        if ret:
+                            return ret
+                    # End of historical data
+                        else:
+                            if self.p.historical:  # only historical
+                                self.put_notification(self.DISCONNECTED)
+                                self._state = self._ST_OVER
+                                return False  # end of historical
+                            else:
+                                print(f"data's already live {self._last_ts}")
+                                self._state = self._ST_LIVE
+                                self.put_notification(self.LIVE)
+                                continue
 
     def _fetch_ohlcv(self, fromdate=None):
         """Fetch OHLCV data into self._data queue"""
