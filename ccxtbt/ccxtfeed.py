@@ -136,7 +136,7 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                                 self._state = self._ST_OVER
                                 return False  # end of historical
                             else:
-                                print(f"data's already live {self._last_ts}")
+                                print(f"data's going live {self._last_ts}")
                                 self._state = self._ST_LIVE
                                 self.put_notification(self.LIVE)
                                 continue
