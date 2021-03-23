@@ -148,9 +148,7 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
         def retry_method(self, *args, **kwargs):
             _retries = 5
             for i in range(_retries):
-                if self.debug:
-                    print('{} - {} - Attempt {}'.format(datetime.now(), method.__name__, i))
-                time.sleep(self.exchange.rateLimit / 1000)
+                time.sleep(self.store.exchange.rateLimit / 1000)
                 try:
                     return method(self, *args, **kwargs)
                 except (NetworkError, ExchangeError):
