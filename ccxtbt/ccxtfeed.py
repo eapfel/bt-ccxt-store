@@ -25,10 +25,12 @@ from __future__ import (absolute_import, division, print_function,
 import time
 from collections import deque
 from datetime import datetime
+from functools import wraps
 
 import backtrader as bt
 from backtrader.feed import DataBase
 from backtrader.utils.py3 import with_metaclass
+from ccxt.base.errors import NetworkError, ExchangeError
 
 from .ccxtstore import CCXTStore
 
@@ -129,7 +131,7 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                         ret = self._load_ohlcv()
                         if ret:
                             return ret
-                    # End of historical data
+                        # End of historical data
                         else:
                             if self.p.historical:  # only historical
                                 self.put_notification(self.DISCONNECTED)
@@ -141,6 +143,23 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                                 self.put_notification(self.LIVE)
                                 continue
 
+    def retry(method):
+        @wraps(method)
+        def retry_method(self, *args, **kwargs):
+            _retries = 5
+            for i in range(_retries):
+                if self.debug:
+                    print('{} - {} - Attempt {}'.format(datetime.now(), method.__name__, i))
+                time.sleep(self.exchange.rateLimit / 1000)
+                try:
+                    return method(self, *args, **kwargs)
+                except (NetworkError, ExchangeError):
+                    if i == _retries - 1:
+                        raise
+
+        return retry_method
+
+    @retry
     def _fetch_ohlcv(self, fromdate=None):
         """Fetch OHLCV data into self._data queue"""
         granularity = self.store.get_granularity(self._timeframe, self._compression)
