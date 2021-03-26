@@ -39,6 +39,7 @@ class CCXTOrder(OrderBase):
         self.executed_fills = []
         self.ordtype = self.Buy if ccxt_order['side'] == 'buy' else self.Sell
         self.size = float(ccxt_order['amount'])
+        self.filled = float(ccxt_order['filled'])
 
         super(CCXTOrder, self).__init__()
 
@@ -182,7 +183,7 @@ class CCXTBroker(with_metaclass(MetaCCXTBroker, BrokerBase)):
     def next(self):
         if self.debug:
             print('Broker next() called')
-        
+
         for o_order in list(self.open_orders):
             oID = o_order.ccxt_order['id']
 
@@ -193,14 +194,14 @@ class CCXTBroker(with_metaclass(MetaCCXTBroker, BrokerBase)):
 
             # Get the order
             ccxt_order = self.store.fetch_order(oID, o_order.data.p.dataname)
-            
+
             # Check for new fills
             if ccxt_order['trades'] is not None:
                 for fill in ccxt_order['trades']:
                     if fill not in o_order.executed_fills:
-                        o_order.execute(fill['datetime'], fill['amount'], fill['price'], 
-                                        0, 0.0, 0.0, 
-                                        0, 0.0, 0.0, 
+                        o_order.execute(fill['datetime'], fill['amount'], fill['price'],
+                                        0, 0.0, 0.0,
+                                        0, 0.0, 0.0,
                                         0.0, 0.0,
                                         0, 0.0)
                         o_order.executed_fills.append(fill['id'])
@@ -215,6 +216,30 @@ class CCXTBroker(with_metaclass(MetaCCXTBroker, BrokerBase)):
                 o_order.completed()
                 self.notify(o_order)
                 self.open_orders.remove(o_order)
+                self.get_balance()
+
+            # Check if the order is cancelled
+            if ccxt_order[self.mappings['canceled_order']['key']] == self.mappings['canceled_order']['value']:
+                pos = self.getposition(o_order.data, clone=False)
+                pos.update(o_order.size, o_order.price)
+                o_order.cancel()
+                self.notify(o_order)
+                self.open_orders.remove(o_order)
+                self.get_balance()
+
+            # Check if the order is partially field
+            if ccxt_order['info'][self.mappings['partially_field_order']['key']] == self.mappings['partially_field_order']['value']:
+
+                if o_order.status not in [o_order.Created] and o_order.filled == ccxt_order['filled'] and o_order.ccxt_order['info'][self.mappings['partially_field_order']['key']] == ccxt_order['info'][self.mappings['partially_field_order']['key']]:
+                    return
+
+                o_order.ccxt_order = ccxt_order
+                pos = self.getposition(o_order.data, clone=False)
+                pos.update(o_order.size, o_order.price)
+                o_order.partial()
+                o_order.filled = ccxt_order['filled']
+                self.notify(o_order)
+                # self.open_orders.remove(o_order)
                 self.get_balance()
 
     def _submit(self, owner, data, exectype, side, amount, price, params):
