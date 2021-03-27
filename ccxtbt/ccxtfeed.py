@@ -142,6 +142,12 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                                 self._state = self._ST_LIVE
                                 self.put_notification(self.LIVE)
                                 continue
+                    else:
+                        # TODO: Border case. Fix live data lose
+                        print(f"data's going live {self._last_ts}")
+                        self._state = self._ST_LIVE
+                        self.put_notification(self.LIVE)
+                        continue
 
     def retry(method):
         @wraps(method)
