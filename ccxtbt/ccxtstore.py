@@ -177,6 +177,10 @@ class CCXTStore(with_metaclass(MetaSingleton, object)):
         return self.exchange.cancel_order(order_id, symbol)
 
     @retry
+    def cancel_all_orders(self, symbol):
+        return self.exchange.cancel_all_orders(symbol)
+
+    @retry
     def fetch_trades(self, symbol):
         return self.exchange.fetch_trades(symbol)
 
@@ -192,8 +196,8 @@ class CCXTStore(with_metaclass(MetaSingleton, object)):
         return self.exchange.fetch_order(oid, symbol)
 
     @retry
-    def fetch_open_orders(self):
-        return self.exchange.fetchOpenOrders()
+    def fetch_open_orders(self, symbol):
+        return self.exchange.fetch_open_orders(symbol)
 
     @retry
     def private_end_point(self, type, endpoint, params):
