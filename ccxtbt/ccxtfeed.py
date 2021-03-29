@@ -143,7 +143,7 @@ class CCXTFeed(with_metaclass(MetaCCXTFeed, DataBase)):
                                 self.put_notification(self.LIVE)
                                 continue
                     else:
-                        # TODO: Border case. Fix live data lose
+                        # TODO: Border case. Fix live data lost
                         print(f"data's going live {self._last_ts}")
                         self._state = self._ST_LIVE
                         self.put_notification(self.LIVE)

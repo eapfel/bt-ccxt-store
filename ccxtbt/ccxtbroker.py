@@ -26,7 +26,7 @@ import json
 
 from backtrader import BrokerBase, OrderBase, Order
 from backtrader.position import Position
-from backtrader.utils.py3 import queue, with_metaclass
+from backtrader.utils.py3 import with_metaclass
 
 from .ccxtstore import CCXTStore
 
@@ -133,7 +133,7 @@ class CCXTBroker(with_metaclass(MetaCCXTBroker, BrokerBase)):
         self.debug = debug
         self.indent = 4  # For pretty printing dictionaries
 
-        self.notifs = queue.Queue()  # holds orders which are notified
+        self.notifs = collections.deque()
 
         self.open_orders = list()
 
@@ -166,12 +166,13 @@ class CCXTBroker(with_metaclass(MetaCCXTBroker, BrokerBase)):
 
     def get_notification(self):
         try:
-            return self.notifs.get(False)
-        except queue.Empty:
+            return self.notifs.popleft()
+        # except queue.Empty:
+        except IndexError:
             return None
 
     def notify(self, order):
-        self.notifs.put(order)
+        self.notifs.append(order.clone())
 
     def getposition(self, data, clone=True):
         # return self.o.getposition(data._dataname, clone=clone)
@@ -228,9 +229,12 @@ class CCXTBroker(with_metaclass(MetaCCXTBroker, BrokerBase)):
                 self.get_balance()
 
             # Check if the order is partially field
-            if ccxt_order['info'][self.mappings['partially_field_order']['key']] == self.mappings['partially_field_order']['value']:
+            if ccxt_order['info'][self.mappings['partially_field_order']['key']] == \
+                    self.mappings['partially_field_order']['value']:
 
-                if o_order.status not in [o_order.Created] and o_order.filled == ccxt_order['filled'] and o_order.ccxt_order['info'][self.mappings['partially_field_order']['key']] == ccxt_order['info'][self.mappings['partially_field_order']['key']]:
+                if o_order.status not in [o_order.Created] and o_order.filled == ccxt_order['filled'] and \
+                        o_order.ccxt_order['info'][self.mappings['partially_field_order']['key']] == ccxt_order['info'][
+                    self.mappings['partially_field_order']['key']]:
                     return
 
                 o_order.ccxt_order = ccxt_order
