@@ -29,7 +29,7 @@ import backtrader as bt
 import ccxt
 from backtrader.metabase import MetaParams
 from backtrader.utils.py3 import with_metaclass
-from ccxt.base.errors import NetworkError, ExchangeError
+from ccxt.base.errors import NetworkError, ExchangeError, RequestTimeout, RateLimitExceeded
 
 
 class MetaSingleton(MetaParams):
@@ -134,12 +134,19 @@ class CCXTStore(with_metaclass(MetaSingleton, object)):
     def retry(method):
         @wraps(method)
         def retry_method(self, *args, **kwargs):
+            rate_limit = self.exchange.rateLimit
             for i in range(self.retries):
-                if self.debug:
-                    print('{} - {} - Attempt {}'.format(datetime.now(), method.__name__, i))
-                time.sleep(self.exchange.rateLimit / 1000)
+                time.sleep(rate_limit / 1000)
                 try:
                     return method(self, *args, **kwargs)
+                # except (NetworkError, ExchangeError):
+                #     if i == self.retries - 1:
+                #         raise
+                except (RequestTimeout, RateLimitExceeded):
+                    if i == self.retries - 1:
+                        raise
+                    # Stop 10 seconds
+                    time.sleep(10)
                 except (NetworkError, ExchangeError):
                     if i == self.retries - 1:
                         raise
